@@ -76,7 +76,7 @@ class VMAge {
             case .serverError(let message):
                 return "Server error: \(message)"
             }
-        }
+        }   
     }
     
     // MARK: - Verification Status
@@ -133,7 +133,9 @@ class VMAge {
     // MARK: - Configuration Access
     
     /// API base URL
-    private static let baseURL = "https://oauth.verifymyage.com"
+//    private static let baseURL = "https://oauth.verifymyage.com"
+    
+    private static let baseURL = "https://dev.verifymyage.com"
     
     /// Auth start endpoint
     private static let authStartEndpoint = "/v2/auth/start"
@@ -201,7 +203,7 @@ class VMAge {
      }
      ```
      */
-    static func startVerification(completion: @escaping (Result<Response, Error>) -> Void) {
+    static func startVerification(countryCode: String, completion: @escaping (Result<Response, Error>) -> Void) {
         // Validate required parameters
         if webhook.isEmpty {
             completion(.failure(.invalidCredentials))
@@ -210,7 +212,7 @@ class VMAge {
         
         // Create parameters
         let params: [String: String] = [
-            "country": country,
+            "country": countryCode,
             "webhook": webhook
         ]
         
@@ -440,7 +442,7 @@ class VMAge {
             
             // Parse response
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let statusString = json["verification_status"] as? String {
+                let statusString = json["verification_status"] as? String {
                 
                 // Parse status
                 let status = VerificationStatus(rawValue: statusString) ?? .unknown
