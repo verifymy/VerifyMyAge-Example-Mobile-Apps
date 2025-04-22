@@ -538,19 +538,13 @@ struct VMWebView: UIViewRepresentable {
     
     /// Create WebView
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
-        webView.configuration.allowsInlineMediaPlayback = true
-        webView.configuration.mediaTypesRequiringUserActionForPlayback = []
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+
+        let webview = WKWebView(frame: .zero, configuration: configuration)
+        webview.navigationDelegate = context.coordinator
         
-        // Add this if targeting iOS 14.3+
-        if #available(iOS 14.3, *) {
-            webView.configuration.limitsNavigationsToAppBoundDomains = true
-            webView.configuration.preferences.isElementFullscreenEnabled = true
-        }
-        
-        webView.navigationDelegate = context.coordinator
-        
-        return webView
+        return webview
     }
     
     /// Load URL
