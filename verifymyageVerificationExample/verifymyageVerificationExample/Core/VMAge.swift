@@ -76,7 +76,7 @@ class VMAge {
             case .serverError(let message):
                 return "Server error: \(message)"
             }
-        }   
+        }
     }
     
     // MARK: - Verification Status
@@ -291,8 +291,6 @@ class VMAge {
         request.addValue("hmac \(apiKey):\(hmac)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        print("hmac \(apiKey):\(hmac)")
-        
         // Make request
         URLSession.shared.dataTask(with: request) { data, response, error in
             // Handle network error
@@ -306,7 +304,6 @@ class VMAge {
             // Check HTTP status
             if let httpResponse = response as? HTTPURLResponse,
                !(200...299).contains(httpResponse.statusCode) {
-                print(httpResponse.statusCode)
                 
                 DispatchQueue.main.async {
                     completion(.failure(.serverError("HTTP \(httpResponse.statusCode)")))
@@ -336,6 +333,9 @@ class VMAge {
                     verificationID: verificationID,
                     status: status
                 )
+                
+                print("Verification created ID \(verificationID)")
+                print("Verification created URL \(verificationURL)")
                 
                 DispatchQueue.main.async {
                     completion(.success(response))
@@ -396,7 +396,6 @@ class VMAge {
             return
         }
         
-        print(requestUri)
         // Generate HMAC using the request URI
         guard let hmac = generateHMAC(secret: apiSecret, data: requestUri) else {
             completion(.failure(.requestFailed("Failed to generate security signature")))
@@ -407,7 +406,6 @@ class VMAge {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
-        print("hmac \(apiKey):\(hmac)")
         // Add headers
         request.addValue("hmac \(apiKey):\(hmac)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -425,7 +423,7 @@ class VMAge {
             // Check HTTP status
             if let httpResponse = response as? HTTPURLResponse,
                !(200...299).contains(httpResponse.statusCode) {
-                print(httpResponse.statusCode)
+
                 DispatchQueue.main.async {
                     completion(.failure(.serverError("HTTP \(httpResponse.statusCode)")))
                 }

@@ -2,23 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>API_KEY</key>
-    <string>333333</string>
-    <key>API_SECRET</key>
-    <string>33333333</string>
-    <key>COUNTRY</key>
-    <string>demo</string>
-    <key>WEBHOOK</key>
-    <string>https://your-webhook.com/verification-callback</string>
-    <key>REDIRECT_URL</key>
-    <string>https://demo.verifymyage.com/callback</string>
-    <key>METHOD</key>
-    <string></string>
-    <key>EXTERNAL_USER_ID</key>
-    <string></string>
-    <key>LSApplicationQueriesSchemes</key>
-<array>
-    <string>gbanonymeage</string>
-</array>
+	<key>API_KEY</key>
+	<string>333333</string>
+	<key>API_SECRET</key>
+	<string>33333333</string>
+	<key>COUNTRY</key>
+	<string>demo</string>
+	<key>WEBHOOK</key>
+	<string>https://your-webhook.com/verification-callback</string>
+	<key>REDIRECT_URL</key>
+	<string>https://demo-dev.verifymyage.com/callback</string>
+	<key>METHOD</key>
+	<string></string>
+	<key>EXTERNAL_USER_ID</key>
+	<string></string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>gbanonymeage</string>
+	</array>
 </dict>
 </plist>
