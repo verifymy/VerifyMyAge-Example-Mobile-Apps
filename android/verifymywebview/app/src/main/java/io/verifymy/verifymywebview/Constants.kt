@@ -2,8 +2,8 @@ package io.verifymy.verifymywebview
 
 import androidx.compose.ui.graphics.Color
 
-const val API_KEY = "333333"
-const val API_SECRET_KEY = "33333333"
+const val API_KEY = "YOUR_API_KEY"
+const val API_SECRET_KEY = "YOUR_API_SECRET_KEY"
 
 // URL Constants
 const val BASE_URL = "https://stg.verifymyage.com"
