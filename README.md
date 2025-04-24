@@ -19,61 +19,182 @@ This guide explains how to integrate the VerifyMyAge verification flow within a 
 
 ## Android Implementation
 
-### WebView Settings
+### Setup
 
+1. Add your API credentials in `Constants.kt`:
 ```kotlin
-webView.apply {
-    settings.javaScriptEnabled = true
-    settings.domStorageEnabled = true
-    settings.mediaPlaybackRequiresUserGesture = false
-}
+const val API_KEY = "your_api_key"
+const val API_SECRET_KEY = "your_api_secret"
 ```
 
-### Required Permissions
+2. Configure your callback URL:
+```kotlin
+const val DEFAULT_CALLBACK_URL = "https://your-app-callback-url.com"
+```
 
-Add to `AndroidManifest.xml`:
+3. Add required permissions to `AndroidManifest.xml`:
 ```xml
-<uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.INTERNET" />
 ```
 
-### Camera Permission Handling
+### API Integration
 
-```kotlin
-private val requestPermissionLauncher = registerForActivityResult(
-    ActivityResultContracts.RequestPermission()
-) { isGranted ->
-    if (isGranted) {
-        // Camera permission granted
-    }
-}
+The integration consists of three main steps:
 
-// Handle WebView permission requests
-webChromeClient = object : WebChromeClient() {
-    override fun onPermissionRequest(request: PermissionRequest) {
-        request.resources.forEach { r ->
-            if (r == PermissionRequest.RESOURCE_VIDEO_CAPTURE) {
-                request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
-            }
-        }
-    }
-}
-```
+1. **Create Verification**
+   ```kotlin
+   // Parameters for verification
+   val params = VerificationParams(
+       country = "gb",                                   // Required
+       redirectUrl = "https://your-callback-url.com",    // Optional
+       businessSettingsId = "your_settings_id",          // Optional
+       externalUserId = "user123",                      // Optional
+       email = "user@example.com",                      // Required for stealth mode
+       stealth = true                                   // Optional
+   )
 
-### URL Handling
+   // Create verification and handle response
+   runCatching { createVerification(params) }
+       .onSuccess { verification ->
+           // verification.id: String - Use this to check status later
+           // verification.url: String - Load this in WebView
+           // verification.status: String - Initial status
+       }
+       .onFailure { error ->
+           // Handle API errors
+       }
+   ```
 
-```kotlin
-webViewClient = object : WebViewClient() {
-    override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-        // Handle callback URL
-        if (url.startsWith(YOUR_CALLBACK_URL)) {
-            // Extract verification ID and handle completion
-            return true
-        }
-        return false
-    }
-}
-```
+2. **Handle Verification Flow**
+
+   a. Basic WebView Setup
+   ```kotlin
+   // Configure WebView
+   WebView(context).apply {
+       settings.apply {
+           javaScriptEnabled = true
+           domStorageEnabled = true
+           mediaPlaybackRequiresUserGesture = false
+       }
+       
+       // Load verification URL
+       loadUrl(verification.url)
+       
+       // Handle completion
+       webViewClient = object : WebViewClient() {
+           override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+               // Check if URL matches your callback
+               if (url?.startsWith(YOUR_CALLBACK_URL) == true) {
+                   // Verification completed
+                   return true
+               }
+               return false
+           }
+       }
+   }
+   ```
+
+   b. Camera Permission
+   ```kotlin
+   // Request camera permission
+   val requestPermissionLauncher = registerForActivityResult(
+       ActivityResultContracts.RequestPermission()
+   ) { isGranted ->
+       if (isGranted) {
+           // Camera permission granted, WebView can access camera
+       }
+   }
+
+   // Handle WebView permissions
+   webChromeClient = object : WebChromeClient() {
+       override fun onPermissionRequest(request: PermissionRequest?) {
+           request?.let {
+               if (it.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
+                   it.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+               } else {
+                   it.deny()
+               }
+           }
+       }
+   }
+   ```
+
+3. **Check Verification Status**
+   ```kotlin
+   runCatching { fetchVerificationStatus(verificationId) }
+       .onSuccess { status ->
+           when (status) {
+               "approved" -> // Verification successful
+               "rejected" -> // Verification failed
+               "failed" -> // Technical error
+           }
+       }
+       .onFailure { error ->
+           // Handle API errors
+       }
+   ```
+
+### Stealth Mode
+
+When enabled, stealth mode provides a streamlined verification process:
+
+1. **Requirements**
+   - User's email address is required
+   - Add `stealth=true` to verification URL
+   - Include user info in API request
+
+2. **Example Request**
+   ```json
+   {
+     "country": "gb",
+     "redirect_url": "https://your-callback-url.com",
+     "user_info": {
+       "email": "user@example.com"
+     }
+   }
+   ```
+
+3. **URL Parameters**
+   The verification URL will automatically include:
+   ```
+   &stealth=true
+   ```
+
+### Security Considerations
+
+1. **API Security**
+   - All requests are signed using HMAC-SHA256
+   - Keep your API secret key secure
+   - Use HTTPS for all API calls
+
+2. **WebView Security**
+   - Enable only required JavaScript features
+   - Handle permissions appropriately
+   - Validate callback URLs
+
+3. **Data Protection**
+   - Don't store verification IDs permanently
+   - Clear WebView data after verification
+   - Handle user data according to GDPR
+
+### Error Handling
+
+1. **API Errors**
+   - Network errors
+   - Invalid parameters
+   - Authentication failures
+   - Rate limiting
+
+2. **WebView Errors**
+   - Page load failures
+   - Camera permission denied
+   - Invalid callback URLs
+
+3. **Status Check Errors**
+   - Invalid verification ID
+   - Expired verifications
+   - Network timeouts
 
 ## iOS Implementation
 
@@ -162,29 +283,6 @@ extension ViewController: WKNavigationDelegate {
    - `The devicemotion events are blocked by permissions policy. See https://github.com/w3c/webappsec-permissions-policy/blob/master/features.md#sensor-features`
    
    These warnings can be safely ignored. They do not affect the verification process since they are related to a third-party library.
-
-## API Integration
-
-1. Initialize verification flow:
-```
-GET https://oauth.verifymyage.com/oauth/authorize
-    ?client_id=YOUR_API_KEY
-    &country=COUNTRY_CODE
-    &method=
-    &redirect_uri=YOUR_CALLBACK_URL
-    &response_type=code
-    &scope=adult
-    &state=xyz
-    &sdk=1
-```
-
-2. Check verification status:
-```
-GET https://oauth.verifymyage.com/v2/verification/VERIFICATION_ID/status
-Headers:
-    Content-Type: application/json
-    Authorization: hmac YOUR_API_KEY:GENERATED_HMAC
-```
 
 ## Support
 
