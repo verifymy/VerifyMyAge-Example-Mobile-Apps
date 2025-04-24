@@ -46,14 +46,12 @@ import java.net.URL
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-private const val API_KEY = "YOUR_API_KEY"
-private const val API_SECRET_KEY = "YOUR_SECRET_KEY"
+private const val API_KEY = ""
+private const val API_SECRET_KEY = ""
 
 // URL Constants
-private const val BASE_URL = "https://dev.verifymyage.com"
-private const val ANONYM_AGE_URL_SCHEME = "gbanonymeage://"
-private const val ANONYM_AGE_STORE_URI = "https://play.google.com/store/apps/details?id=io.greenbadg.anonymage"
-private const val DEMO_APP_URL = "https://demo-dev.verifymyage.com/callback"
+private const val BASE_URL = "https://stg.verifymyage.com"
+private const val DEMO_APP_URL = "https://demo-stg.verifymyage.com/callback"
 private const val BASE_VERIFICATION_URL = "$BASE_URL/oauth/authorize?client_id=$API_KEY&country=%s&method=&redirect_uri=$DEMO_APP_URL&response_type=code&scope=adult&state=xyz&sdk=1"
 
 // API Constants
@@ -334,7 +332,10 @@ fun ThankYouScreen(
                             Box(
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .background(color = Color(0xFF4CAF50), shape = RoundedCornerShape(50))
+                                    .background(
+                                        color = Color(0xFF4CAF50),
+                                        shape = RoundedCornerShape(50)
+                                    )
                                     .align(Alignment.CenterHorizontally),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -358,7 +359,10 @@ fun ThankYouScreen(
                             Box(
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .background(color = Color(0xFFD32F2F), shape = RoundedCornerShape(50))
+                                    .background(
+                                        color = Color(0xFFD32F2F),
+                                        shape = RoundedCornerShape(50)
+                                    )
                                     .align(Alignment.CenterHorizontally),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -491,7 +495,7 @@ fun WebViewComponent(
                         view: WebView?,
                         url: String?
                     ): Boolean {
-                        return handleCustomURLScheme(url, context, onNavigateToThankYou)
+                        return handleCustomURLScheme(url, onNavigateToThankYou)
                     }
                 }
                 
@@ -510,30 +514,15 @@ fun WebViewComponent(
 }
 
 private fun handleCustomURLScheme(
-    url: String?, 
-    context: Context,
+    url: String?,
     onNavigateToThankYou: (String?) -> Unit
 ) : Boolean {
-    return when  {
-        url == null -> false
-        url.contains(ANONYM_AGE_URL_SCHEME) -> {
-            Intent(Intent.ACTION_VIEW, ANONYM_AGE_STORE_URI.toUri()).runCatching {
-                context.startActivity(this)
-            }.onFailure { failure ->
-                Log.e(failure::class.simpleName, failure.message, failure)
-            }.onSuccess {
-                Log.d("WebView", "Success to open $url")
-            }
-            true
-        }
-        url.startsWith(DEMO_APP_URL) == true -> {
-            Log.i("WebView", "Navigated to $url")
-            // Extract verification_id from URL
-            val id = url.toUri().getQueryParameter("verification_id")
-            onNavigateToThankYou(id)
-            true
-        }
-        else -> false
+    return if (url.isNullOrBlank() || !url.startsWith(DEMO_APP_URL) ) false
+    else {
+        Log.i("WebView", "Navigated to $url")
+        val id = url.toUri().getQueryParameter("verification_id")
+        onNavigateToThankYou(id)
+        true
     }
 }
 
