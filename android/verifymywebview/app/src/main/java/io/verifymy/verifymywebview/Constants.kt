@@ -6,8 +6,8 @@ const val API_KEY = "YOUR_API_KEY"
 const val API_SECRET_KEY = "YOUR_API_SECRET_KEY"
 
 // URL Constants
-const val BASE_URL = "https://stg.verifymyage.com"
-const val DEFAULT_CALLBACK_URL = "https://demo-stg.verifymyage.com/callback" // For convenience
+const val BASE_URL = "https://sandbox.verifymyage.com"
+const val DEFAULT_CALLBACK_URL = "https://demo-sdx.verifymyage.com/callback" // For convenience
 
 // API Constants
 const val API_VERIFICATION_CREATE_ENDPOINT = "/v2/auth/start"
