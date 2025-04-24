@@ -31,11 +31,6 @@ class VMAge {
         return Bundle.main.infoDictionary?["API_SECRET"] as? String ?? ""
     }
     
-    /// Webhook URL for verification callbacks
-    static var webhook: String {
-        return Bundle.main.infoDictionary?["WEBHOOK"] as? String ?? ""
-    }
-    
     /// Redirect URL for verification completion
     static var redirectURL: String {
         return Bundle.main.infoDictionary?["REDIRECT_URL"] as? String ?? ""
@@ -44,6 +39,11 @@ class VMAge {
     /// Verification method (e.g., AgeEstimation, Email, IDScan, IDScanFaceMatch, Mobile, CreditCard)
     static var method: String? {
         return Bundle.main.infoDictionary?["METHOD"] as? String
+    }
+    
+    /// Id of bussiness configuration.
+    static var business_settings_id: String? {
+        return Bundle.main.infoDictionary?["BUSINESS_SETTINGS_ID"] as? String
     }
     
     /// UUID to identify an user.
@@ -161,8 +161,8 @@ class VMAge {
             "country": countryCode,
             "redirect_url": redirectURL,
             "method": method,
+            "business_settings_id": business_settings_id,
             "external_user_id": external_user_id,
-            "webhook": webhook,
         ]
         
         // Start verification

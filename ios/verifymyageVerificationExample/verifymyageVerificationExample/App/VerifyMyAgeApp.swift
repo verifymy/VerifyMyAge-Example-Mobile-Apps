@@ -4,7 +4,6 @@ import SwiftUI
 struct VerifyMyAgeApp: App {
     var body: some Scene {
         WindowGroup {
-//            ContentView()
             DemoView()
         }
     }

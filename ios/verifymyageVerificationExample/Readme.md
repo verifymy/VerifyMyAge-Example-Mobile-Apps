@@ -55,8 +55,18 @@ The `Info.plist` file requires these values:
 <string>333333</string>
 <key>API_SECRET</key>
 <string>33333333</string>
-<key>WEBHOOK</key>
-<string>https://your-webhook.com/verification-callback</string>
+<key>REDIRECT_URL</key>
+<string>https://demo-stg.verifymyage.com/callback</string>
+<key>METHOD</key>
+<string></string>
+<key>BUSINESS_SETTINGS_ID</key>
+<string></string>
+<key>EXTERNAL_USER_ID</key>
+<string></string>
+<key>NSCameraUsageDescription</key>
+<string>Camera access is required for ID verification</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Microphone access may be required for video verification</string>
 ```
 
 ## Verification Statuses
@@ -96,22 +106,6 @@ Demonstrates a complete implementation of:
 4. **Check verification status**: Use `VMAge.checkStatus()` with the verification ID
 5. **Process result**: Update your UI based on verification status (`approved`, `failed`, etc.)
 
-## Customization
-
-You can customize the verification parameters:
-
-```swift
-let params: [String: String] = [
-    "country": "us",
-    "webhook": "https://your-api.com/webhook",
-    "redirect_url": "https://your-app.com/callback",
-    "method": "id_scan"  // Specific verification method
-]
-
-VMAge.verify(params: params) { result in
-    // Handle result
-}
-```
 
 ## Requirements
 
