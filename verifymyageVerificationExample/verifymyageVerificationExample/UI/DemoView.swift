@@ -5,7 +5,7 @@ import SwiftUI
 /**
  # VerifyMyAge Demo Screen
  
- This view implements the exact layout of the VerifyMyAge demo site with an organized structure.
+ This view implements the exact layout of the VerifyMyAge demo site.
  */
 struct DemoView: View {
     // MARK: - View Model
@@ -286,8 +286,6 @@ class VerificationViewModel: ObservableObject {
             case .failure(let error):
                 // Handle error
                 print("Verification error: \(error.localizedDescription)")
-                self.verificationStatus = .failed
-                self.showResult = true
             }
         }
     }
@@ -315,8 +313,6 @@ class VerificationViewModel: ObservableObject {
             case .failure(let error):
                 // Handle error
                 print("Status check error: \(error.localizedDescription)")
-                self.verificationStatus = .failed
-                self.showResult = true
             }
         }
     }
@@ -339,15 +335,13 @@ struct Country: Identifiable {
     let id = UUID()
     let name: String
     let code: String
-    let flag: String
     
     /// Default list of countries matching the demo screenshot
     static let defaultCountries: [Country] = [
-        Country(name: "France", code: "FR", flag: "🇫🇷"),
-        Country(name: "Germany", code: "DE", flag: "🇩🇪"),
-        Country(name: "United Kingdom", code: "GB", flag: "🇬🇧"),
-        Country(name: "United States of America", code: "US", flag: "🇺🇸"),
-        Country(name: "Demo", code: "DEMO", flag: "🏳️")
+        Country(name: "Germany", code: "DE"),
+        Country(name: "United Kingdom", code: "GB"),
+        Country(name: "United States of America", code: "US"),
+        Country(name: "Demo", code: "DEMO")
     ]
 }
 

@@ -14,63 +14,71 @@ import WebKit
  2. Use the static functions to start verification
  3. Display the verification UI using VMWebView
  4. Check verification status after user completes the flow
- 
- ## Basic Usage Example
- 
- ```swift
- // Start verification
- VMAge.startVerification { result in
-     switch result {
-     case .success(let response):
-         // Show WebView with the verification URL
-         if let url = URL(string: response.verificationURL) {
-             // Present WebView that loads this URL
-             
-             // Store the verification ID for later status check
-             let verificationID = response.verificationID
-         }
-     case .failure(let error):
-         // Show error to user
-         print("Verification error: \(error.localizedDescription)")
-     }
- }
- 
- // Later, after user completes verification in WebView,
- // check the verification status:
- VMAge.checkStatus(verificationID: "verification-id") { result in
-     switch result {
-     case .success(let status):
-         if status == .approved {
-             // User was successfully verified
-             print("Verification approved!")
-         } else {
-             // Handle other statuses
-             print("Verification status: \(status.rawValue)")
-         }
-     case .failure(let error):
-         print("Failed to check status: \(error.localizedDescription)")
-     }
- }
- ```
  */
 class VMAge {
+    // MARK: - Configuration
+    
+    /// API base URL
+    private static let baseURL = "https://stg.verifymyage.com"
+    
+    /// API key for authentication
+    static var apiKey: String {
+        return Bundle.main.infoDictionary?["API_KEY"] as? String ?? ""
+    }
+    
+    /// API secret for HMAC generation
+    static var apiSecret: String {
+        return Bundle.main.infoDictionary?["API_SECRET"] as? String ?? ""
+    }
+    
+    /// Webhook URL for verification callbacks
+    static var webhook: String {
+        return Bundle.main.infoDictionary?["WEBHOOK"] as? String ?? ""
+    }
+    
+    /// Redirect URL for verification completion
+    static var redirectURL: String {
+        return Bundle.main.infoDictionary?["REDIRECT_URL"] as? String ?? ""
+    }
+    
+    /// Verification method (e.g., AgeEstimation, Email, IDScan, IDScanFaceMatch, Mobile, CreditCard)
+    static var method: String? {
+        return Bundle.main.infoDictionary?["METHOD"] as? String
+    }
+    
+    /// UUID to identify an user.
+    static var external_user_id: String? {
+        return Bundle.main.infoDictionary?["EXTERNAL_USER_ID"] as? String
+    }
+    
+    /// Auth start endpoint
+    private static let authStartEndpoint = "/v2/auth/start"
+    
+    /// Status check endpoint
+    private static func statusEndpoint(for id: String) -> String {
+        return "/v2/verification/\(id)/status"
+    }
+    
     // MARK: - Error Types
     
     /// Errors that can occur during verification
-    enum Error: Swift.Error, LocalizedDescription {
+    enum Error: Swift.Error, LocalizedError {
         /// Missing or invalid API credentials
         case invalidCredentials
-        
+        // Missing required fields
+        case missingRequiredFields(String)
         /// Network or API request failed
         case requestFailed(String)
         
         /// Server returned an error
         case serverError(String)
         
-        var localizedDescription: String {
+        var errorDescription: String? {
             switch self {
             case .invalidCredentials:
                 return "Invalid API credentials. Check your API_KEY and API_SECRET in Info.plist"
+            case .missingRequiredFields(let reason):
+                return "Missing Required Fields: \(reason)"
             case .requestFailed(let reason):
                 return "Verification request failed: \(reason)"
             case .serverError(let message):
@@ -101,73 +109,10 @@ class VMAge {
         /// Unknown status
         case unknown
         
-        /// Get a user-friendly description of the status
-        var description: String {
-            switch self {
-            case .started:
-                return "Verification not started"
-            case .pending:
-                return "Verification in progress"
-            case .approved:
-                return "Verification approved"
-            case .failed:
-                return "Verification failed"
-            case .expired:
-                return "Verification link expired"
-            case .unknown:
-                return "Unknown status"
-            }
-        }
-        
-        /// Is this a terminal status?
-        var isTerminal: Bool {
-            return self == .approved || self == .failed || self == .expired
-        }
-        
         /// Is this a success status?
         var isSuccess: Bool {
             return self == .approved
         }
-    }
-    
-    // MARK: - Configuration Access
-    
-    /// API base URL
-//    private static let baseURL = "https://oauth.verifymyage.com"
-    
-    private static let baseURL = "https://dev.verifymyage.com"
-    
-    /// Auth start endpoint
-    private static let authStartEndpoint = "/v2/auth/start"
-    
-    /// Status check endpoint
-    private static func statusEndpoint(for id: String) -> String {
-        return "/v2/verification/\(id)/status"
-    }
-    
-    /// Get API key from environment
-    static var apiKey: String {
-        return getEnvValue(for: "API_KEY") ?? ""
-    }
-    
-    /// Get API secret from environment
-    static var apiSecret: String {
-        return getEnvValue(for: "API_SECRET") ?? ""
-    }
-    
-    /// Get country from environment (defaults to "gb")
-    static var country: String {
-        return getEnvValue(for: "COUNTRY") ?? "gb"
-    }
-    
-    /// Get webhook URL from environment
-    static var webhook: String {
-        return getEnvValue(for: "WEBHOOK") ?? ""
-    }
-    
-    /// Get redirect URL from environment
-    static var redirectURL: String {
-        return getEnvValue(for: "REDIRECT_URL") ?? ""
     }
     
     // MARK: - Response Model
@@ -187,43 +132,41 @@ class VMAge {
     // MARK: - Public API
     
     /**
-     Start a verification process with default parameters
+     Start a verification process with the specified country
      
-     This uses the country and webhook from your Info.plist file.
-     
-     - Parameter completion: Callback with verification URL or error
-     
-     Example:
-     ```
-     VMAge.startVerification { result in
-         if case .success(let response) = result {
-             // Show verification URL in WebView
-             // Save response.verificationID for later status checks
-         }
-     }
-     ```
+     - Parameters:
+       - countryCode: ISO country code (e.g., "gb", "de", "fr", "us")
+       - completion: Callback with verification URL or error
      */
     static func startVerification(countryCode: String, completion: @escaping (Result<Response, Error>) -> Void) {
-        // Validate required parameters
-        if webhook.isEmpty {
+        // Validate credentials
+        guard !apiKey.isEmpty, !apiSecret.isEmpty else {
             completion(.failure(.invalidCredentials))
             return
         }
         
+        // Validate required parameters
+        if countryCode.isEmpty{
+            completion(.failure(.missingRequiredFields("country")))
+            return
+        }
+        
+        if redirectURL.isEmpty{
+            completion(.failure(.missingRequiredFields("redirect_url")))
+            return
+        }
+        
         // Create parameters
-        let params: [String: String] = [
+        let params: [String: String?] = [
             "country": countryCode,
-            "webhook": webhook
+            "redirect_url": redirectURL,
+            "method": method,
+            "external_user_id": external_user_id,
+            "webhook": webhook,
         ]
         
-        // Add redirect URL if available
-        if !redirectURL.isEmpty {
-            var mutableParams = params
-            mutableParams["redirect_url"] = redirectURL
-            verify(params: mutableParams, completion: completion)
-        } else {
-            verify(params: params, completion: completion)
-        }
+        // Start verification
+        verify(params: params, completion: completion)
     }
     
     /**
@@ -232,28 +175,8 @@ class VMAge {
      - Parameters:
        - params: Custom verification parameters
        - completion: Callback with verification URL or error
-     
-     Example with custom parameters:
-     ```
-     let params: [String: String] = [
-         "country": "us",
-         "webhook": "https://myapp.com/webhook",
-         "redirect_url": "https://myapp.com/callback",
-         "method": "selfie"
-     ]
-     
-     VMAge.verify(params: params) { result in
-         // Handle result
-     }
-     ```
      */
-    static func verify(params: [String: Any], completion: @escaping (Result<Response, Error>) -> Void) {
-        // Validate credentials
-        guard !apiKey.isEmpty, !apiSecret.isEmpty else {
-            completion(.failure(.invalidCredentials))
-            return
-        }
-        
+    static func verify(params: [String: String?], completion: @escaping (Result<Response, Error>) -> Void) {
         // Create URL
         let endpoint = baseURL + authStartEndpoint
         guard let url = URL(string: endpoint) else {
@@ -291,11 +214,14 @@ class VMAge {
         request.addValue("hmac \(apiKey):\(hmac)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        print("Starting verification")
+        
         // Make request
         URLSession.shared.dataTask(with: request) { data, response, error in
             // Handle network error
             if let error = error {
                 DispatchQueue.main.async {
+                    print("Request error: \(error.localizedDescription)")
                     completion(.failure(.requestFailed(error.localizedDescription)))
                 }
                 return
@@ -306,6 +232,7 @@ class VMAge {
                !(200...299).contains(httpResponse.statusCode) {
                 
                 DispatchQueue.main.async {
+                    print("HTTP error: \(httpResponse.statusCode)")
                     completion(.failure(.serverError("HTTP \(httpResponse.statusCode)")))
                 }
                 return
@@ -334,8 +261,8 @@ class VMAge {
                     status: status
                 )
                 
-                print("Verification created ID \(verificationID)")
-                print("Verification created URL \(verificationURL)")
+                print("Verification created - ID: \(verificationID)")
+                print("Verification URL: \(verificationURL)")
                 
                 DispatchQueue.main.async {
                     completion(.success(response))
@@ -343,13 +270,15 @@ class VMAge {
             } else if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let error = json["error"] as? String {
                 DispatchQueue.main.async {
+                    print("Server error: \(error)")
                     completion(.failure(.serverError(error)))
                 }
             } else {
                 DispatchQueue.main.async {
                     // Try to get raw response as string for debugging
                     let responseStr = String(data: data, encoding: .utf8) ?? "Unknown format"
-                    completion(.failure(.serverError("Invalid response format: \(responseStr)")))
+                    print("Invalid response format: \(responseStr)")
+                    completion(.failure(.serverError("Invalid response format")))
                 }
             }
         }.resume()
@@ -361,29 +290,17 @@ class VMAge {
      - Parameters:
        - verificationID: The ID of the verification to check
        - completion: Callback with the current status or error
-     
-     Example:
-     ```
-     VMAge.checkStatus(verificationID: "verification-id") { result in
-         switch result {
-         case .success(let status):
-             if status == .approved {
-                 // User is verified
-             } else if status == .pending {
-                 // Verification still in progress
-             } else {
-                 // Handle other statuses
-             }
-         case .failure(let error):
-             print("Status check failed: \(error.localizedDescription)")
-         }
-     }
-     ```
      */
     static func checkStatus(verificationID: String, completion: @escaping (Result<VerificationStatus, Error>) -> Void) {
         // Validate credentials
         guard !apiKey.isEmpty, !apiSecret.isEmpty else {
             completion(.failure(.invalidCredentials))
+            return
+        }
+        
+        // Validate required parameters
+        if verificationID.isEmpty {
+            completion(.failure(.missingRequiredFields("verification_id")))
             return
         }
         
@@ -410,11 +327,14 @@ class VMAge {
         request.addValue("hmac \(apiKey):\(hmac)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        print("Checking status for ID: \(verificationID)")
+        
         // Make request
         URLSession.shared.dataTask(with: request) { data, response, error in
             // Handle network error
             if let error = error {
                 DispatchQueue.main.async {
+                    print("Status check error: \(error.localizedDescription)")
                     completion(.failure(.requestFailed(error.localizedDescription)))
                 }
                 return
@@ -423,8 +343,9 @@ class VMAge {
             // Check HTTP status
             if let httpResponse = response as? HTTPURLResponse,
                !(200...299).contains(httpResponse.statusCode) {
-
+                
                 DispatchQueue.main.async {
+                    print("HTTP error: \(httpResponse.statusCode)")
                     completion(.failure(.serverError("HTTP \(httpResponse.statusCode)")))
                 }
                 return
@@ -440,10 +361,12 @@ class VMAge {
             
             // Parse response
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                let statusString = json["verification_status"] as? String {
+               let statusString = json["verification_status"] as? String {
                 
                 // Parse status
                 let status = VerificationStatus(rawValue: statusString) ?? .unknown
+                
+                print("Verification status: \(status.rawValue)")
                 
                 DispatchQueue.main.async {
                     completion(.success(status))
@@ -451,13 +374,15 @@ class VMAge {
             } else if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let error = json["error"] as? String {
                 DispatchQueue.main.async {
+                    print("Server error: \(error)")
                     completion(.failure(.serverError(error)))
                 }
             } else {
                 DispatchQueue.main.async {
                     // Try to get raw response as string for debugging
                     let responseStr = String(data: data, encoding: .utf8) ?? "Unknown format"
-                    completion(.failure(.serverError("Invalid response format: \(responseStr)")))
+                    print("Invalid response format: \(responseStr)")
+                    completion(.failure(.serverError("Invalid response format")))
                 }
             }
         }.resume()
@@ -466,25 +391,11 @@ class VMAge {
     /**
      Check if a URL is a verification redirect URL
      
-     This automatically handles checking the URL against your redirect_url
-     and detects when the verification process has completed.
-     
      - Parameters:
        - url: URL to check
        - callback: Returns true if it's a redirect URL
      
-     Example:
-     ```
-     // In your WebView navigation delegate
-     VMAge.isRedirectURL(navigationAction.request.url) { isRedirect in
-         if isRedirect {
-             // Verification flow has completed in the WebView
-             // Time to check the status using the verification ID
-             return false // Cancel navigation
-         }
-         return true // Continue navigation for other URLs
-     }
-     ```
+     - Returns: Whether to continue navigation (true) or cancel it (false)
      */
     static func isRedirectURL(_ url: URL, callback: (Bool) -> Bool) -> Bool {
         // If no redirect URL configured, can't check
@@ -494,6 +405,8 @@ class VMAge {
         
         // Check if URL starts with our redirect URL
         if url.absoluteString.starts(with: redirectURL) {
+            print("Detected redirect URL: \(url.absoluteString)")
+            
             // This is a redirect URL - the verification flow in the WebView is complete
             return callback(true)
         } else {
@@ -520,27 +433,23 @@ class VMAge {
         
         return hexString
     }
-
-    
-    /// Get a value from the info.plist file
-    private static func getEnvValue(for key: String) -> String? {
-        return Bundle.main.infoDictionary?[key] as? String
-    }
 }
 
-/// WebView for displaying verification UI
+// MARK: - WebView for Verification
+
+/// WebView for displaying the verification UI
 struct VMWebView: UIViewRepresentable {
     /// URL to load in the WebView
     let url: URL
     
-    /// Callback for when verification process completes
+    /// Callback for when verification is complete
     var onComplete: (() -> Void)?
     
-    /// Create WebView
+    /// Create the WebView
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
-
+        
         let webview = WKWebView(frame: .zero, configuration: configuration)
         webview.navigationDelegate = context.coordinator
         
@@ -568,20 +477,7 @@ struct VMWebView: UIViewRepresentable {
         /// Handle navigation
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             if let url = navigationAction.request.url {
-                if url.scheme == "gbanonymeage"{
-                    if UIApplication.shared.canOpenURL(url) {
-                        UIApplication.shared.open(url, options: [:]) { success in
-                            if success {
-                                print("Anonymage app opened sucessfully with URL: \(url)")
-                            }else{
-                                print("Failed to open Anonymage app with URL: \(url)")
-                            }
-                        }
-                        decisionHandler(.cancel) // Cancel WebView navigation
-                        return
-                    }
-                }
-                
+                // Check for redirect URL
                 let shouldContinue = VMAge.isRedirectURL(url) { isRedirect in
                     if isRedirect, let onComplete = self.parent.onComplete {
                         onComplete()
@@ -596,10 +492,15 @@ struct VMWebView: UIViewRepresentable {
             
             decisionHandler(.allow)
         }
+        
+        /// Handle load start
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            print("WebView started loading")
+        }
+        
+        /// Handle load finish
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            print("WebView finished loading")
+        }
     }
-}
-
-// Protocol to make Error.localizedDescription work
-protocol LocalizedDescription {
-    var localizedDescription: String { get }
 }
