@@ -135,8 +135,7 @@ fun CountrySelectionScreen(
         "United Kingdom" to "gb",
         "Germany" to "de",
         "United States" to "us",
-        "United States 2" to "us2",
-        "United States 3" to "us3"
+        "Demo" to "demo"
     )
 
     Box(
