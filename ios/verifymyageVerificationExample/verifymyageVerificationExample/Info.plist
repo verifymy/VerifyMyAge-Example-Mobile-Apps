@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>333333</string>
+	<string>YOUR-API_KEY</string>
 	<key>API_SECRET</key>
-	<string>33333333</string>
+	<string>YOUR-SECRET-KEY</string>
 	<key>REDIRECT_URL</key>
 	<string>https://demo-stg.verifymyage.com/callback</string>
 	<key>METHOD</key>
