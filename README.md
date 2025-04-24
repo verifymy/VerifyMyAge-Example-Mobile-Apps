@@ -19,6 +19,8 @@ This guide explains how to integrate the VerifyMyAge verification flow within a 
 
 ## Android Implementation
 
+This implementation has been tested and is compatible with Android versions from Android 7.0 (API level 24) to the latest versions.
+
 ### Setup
 
 1. Add your API credentials in `Constants.kt`:
