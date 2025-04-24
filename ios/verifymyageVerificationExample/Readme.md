@@ -52,11 +52,11 @@ The `Info.plist` file requires these values:
 
 ```
 <key>API_KEY</key>
-<string>KEY</string>
+<string>YOUR-API-KEY</string>
 <key>API_SECRET</key>
-<string>SECRET</string>
+<string>YOUR-SECRET-KEY</string>
 <key>REDIRECT_URL</key>
-<string>https://demo-stg.verifymyage.com/callback</string>
+<string>YOUR-REDIRECT-URL</string>
 <key>METHOD</key>
 <string></string>
 <key>BUSINESS_SETTINGS_ID</key>
