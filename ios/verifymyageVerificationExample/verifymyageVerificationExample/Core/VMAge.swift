@@ -19,7 +19,7 @@ class VMAge {
     // MARK: - Configuration
     
     /// API base URL
-    private static let baseURL = "https://stg.verifymyage.com"
+    private static let baseURL = "https://oauth.verifymyage.com"
     
     /// API key for authentication
     static var apiKey: String {
@@ -449,6 +449,10 @@ struct VMWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
+            
+        // Configure website data store to avoid cache
+        let websiteDataStore = WKWebsiteDataStore.nonPersistent()
+        configuration.websiteDataStore = websiteDataStore
         
         let webview = WKWebView(frame: .zero, configuration: configuration)
         webview.navigationDelegate = context.coordinator
@@ -458,6 +462,7 @@ struct VMWebView: UIViewRepresentable {
     
     /// Load URL
     func updateUIView(_ webView: WKWebView, context: Context) {
+        // Load the request
         webView.load(URLRequest(url: url))
     }
     
