@@ -82,10 +82,6 @@ webViewClient = object : WebViewClient() {
 ```swift
 let config = WKWebViewConfiguration()
 config.allowsInlineMediaPlayback = true
-config.mediaTypesRequiringUserActionForPlayback = []
-
-let webView = WKWebView(frame: .zero, configuration: config)
-webView.configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 ```
 
 ### Required Permissions
@@ -97,17 +93,6 @@ Add to `Info.plist`:
 
 <key>NSMicrophoneUsageDescription</key>
 <string>Microphone access may be required for video verification</string>
-```
-
-### Camera Permission Handling
-
-```swift
-class ViewController: UIViewController, WKUIDelegate {
-    func webView(_ webView: WKWebView,
-                 requestMediaCapturePermission: WKMediaCapturePermissionBlock) {
-        requestMediaCapturePermission(.grant)
-    }
-}
 ```
 
 ### URL Handling
@@ -182,7 +167,7 @@ extension ViewController: WKNavigationDelegate {
 
 1. Initialize verification flow:
 ```
-GET https://dev.verifymyage.com/oauth/authorize
+GET https://oauth.verifymyage.com/oauth/authorize
     ?client_id=YOUR_API_KEY
     &country=COUNTRY_CODE
     &method=
@@ -195,7 +180,7 @@ GET https://dev.verifymyage.com/oauth/authorize
 
 2. Check verification status:
 ```
-GET https://dev.verifymyage.com/v2/verification/VERIFICATION_ID/status
+GET https://oauth.verifymyage.com/v2/verification/VERIFICATION_ID/status
 Headers:
     Content-Type: application/json
     Authorization: hmac YOUR_API_KEY:GENERATED_HMAC

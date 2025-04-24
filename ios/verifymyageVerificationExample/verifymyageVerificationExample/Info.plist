@@ -14,5 +14,9 @@
 	<string></string>
 	<key>EXTERNAL_USER_ID</key>
 	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is required for ID verification</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access may be required for video verification</string>
 </dict>
 </plist>
