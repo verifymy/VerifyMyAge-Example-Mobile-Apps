@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.webkit.CookieManager
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -78,6 +79,7 @@ fun MainScreen(
                         redirectUrl = params.redirectUrl
                         runCatching { createVerification(params) }
                             .onSuccess {
+                                Log.d("VerificationCreated", "Verification created: $it")
                                 basicVerification = it
                                 currentScreen = SCREEN_VERIFICATION
                             }.onFailure {
@@ -292,7 +294,6 @@ fun BrowserScreen(
     redirectUrl: String,
     onNavigateToThankYou: (String?) -> Unit
 ) {
-    var url by remember { mutableStateOf(verificationUrl) }
     var webView by remember { mutableStateOf<WebView?>(null) }
     val context = LocalContext.current
 
@@ -317,6 +318,7 @@ fun BrowserScreen(
                 .navigationBarsPadding(), // Add padding for navigation bar
             factory = { context ->
                 WebView(context).apply {
+                    webView = this
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
@@ -336,6 +338,9 @@ fun BrowserScreen(
 
                         override fun onPageFinished(view: WebView?, url: String?) {
                             super.onPageFinished(view, url)
+                            CookieManager.getInstance().removeAllCookies {
+                                Log.d("OnPageFinished", "Cookies removed") // to prevent reusing cookies to automatically approve the verification based on the previous verification
+                            }
                             // Reset zoom to prevent UI overlapping
                             view?.setInitialScale(0)
                         }
@@ -349,11 +354,25 @@ fun BrowserScreen(
 
                     // Prevent content from being hidden behind system bars
                     fitsSystemWindows = true
-                    
-                    loadUrl(url)
-                }.also { webView = it }
+                }
+            },
+            update = { view ->
+                webView = view
+                view.loadUrl(verificationUrl)
             }
         )
+
+        DisposableEffect(Unit) {
+            onDispose {
+                webView?.apply {
+                    clearCache(true)
+                    clearFormData()
+                    clearHistory()
+                    evaluateJavascript("localStorage.clear();", null)
+                    destroy()
+                }
+            }
+        }
     }
 }
 
@@ -386,8 +405,11 @@ fun ThankYouScreen(
     onRestartClick: () -> Unit
 ) {
     var status by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
     LaunchedEffect(verificationId) {
         if (!verificationId.isNullOrBlank()) {
+            isLoading = true
             runCatching {
                 fetchVerificationStatus(verificationId)
             }.onSuccess {
@@ -395,6 +417,8 @@ fun ThankYouScreen(
             }.onFailure {
                 Log.e("WebView", "Failed to fetch verification status", it)
                 status = "failed"
+            }.also {
+                isLoading = false
             }
         }
     }
@@ -423,37 +447,82 @@ fun ThankYouScreen(
                     contentScale = ContentScale.FillWidth
                 )
 
-                // Status Icon
-                Icon(
-                    imageVector = if (status == "approved") Icons.Default.Check else Icons.Default.Close,
-                    contentDescription = "Status Icon",
-                    tint = if (status == "approved") Color.Green else Color.Red,
-                    modifier = Modifier.size(48.dp)
-                )
-
-                // Status Text
-                Text(
-                    text = when (status) {
-                        "approved" -> "Verification Approved"
-                        "rejected" -> "Verification Rejected"
-                        else -> "Verification Failed"
-                    },
-                    style = TextStyle(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                if (isLoading) {
+                    // Loading indicator
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        color = COLOR_BUTTON
                     )
-                )
+                    Text(
+                        text = "Verifying...",
+                        style = TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                } else {
+                    // Status Icon
+                    Icon(
+                        imageVector = if (status == "approved") Icons.Default.Check else Icons.Default.Close,
+                        contentDescription = "Status Icon",
+                        tint = if (status == "approved") Color.Green else Color.Red,
+                        modifier = Modifier.size(48.dp)
+                    )
 
-                // Restart Button
-                Button(
-                    onClick = onRestartClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = COLOR_BUTTON
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Start New Verification")
+                    // Status Text
+                    Text(
+                        text = when (status) {
+                            "approved" -> "Verification Successful"
+                            "rejected" -> "Verification Rejected"
+                            "failed" -> "Verification Failed"
+                            else -> ""
+                        },
+                        style = TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+
+                    // Verification ID
+                    if (!verificationId.isNullOrBlank()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = Color(0xFFF5F5F5),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "Verification ID:",
+                                style = TextStyle(
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                            )
+                            Text(
+                                text = verificationId,
+                                style = TextStyle(
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            )
+                        }
+                    }
+
+                    // Restart Button
+                    Button(
+                        onClick = onRestartClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = COLOR_BUTTON
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Start New Verification")
+                    }
                 }
             }
         }
