@@ -44,6 +44,7 @@ suspend fun fetchVerificationStatus(verificationId: String): String? =
 
 suspend fun doRequest(endpoint: String, method: String, body: JSONObject?): JSONObject =
     withContext(Dispatchers.IO) {
+        Log.d("API", "$method - $endpoint - Body: $body")
         val data = body?.toString() ?: endpoint
         val hmac = generateHmac(API_SECRET_KEY, data)
 
