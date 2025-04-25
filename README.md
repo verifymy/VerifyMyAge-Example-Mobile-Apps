@@ -52,8 +52,6 @@ The integration consists of three main steps:
        redirectUrl = "https://your-callback-url.com",    // Optional
        businessSettingsId = "your_settings_id",          // Optional
        externalUserId = "user123",                      // Optional
-       email = "user@example.com",                      // Required for stealth mode
-       stealth = true                                   // Optional
    )
 
    // Create verification and handle response
@@ -150,17 +148,11 @@ When enabled, stealth mode provides a streamlined verification process:
    ```json
    {
      "country": "gb",
-     "redirect_url": "https://your-callback-url.com",
+     "redirect_url": "https://your-callback-url.com?stealth=true",
      "user_info": {
        "email": "user@example.com"
      }
    }
-   ```
-
-3. **URL Parameters**
-   The verification URL will automatically include:
-   ```
-   &stealth=true
    ```
 
 ### Security Considerations
@@ -283,6 +275,7 @@ extension ViewController: WKNavigationDelegate {
    The following warnings may appear in the console: 
    - `[Violation] Permissions policy violation: accelerometer is not allowed in this document`
    - `The devicemotion events are blocked by permissions policy. See https://github.com/w3c/webappsec-permissions-policy/blob/master/features.md#sensor-features`
+   - `The deviceorientation events are blocked by permissions policy. See https://github.com/w3c/webappsec-permissions-policy/blob/master/features.md#sensor-features`
    
    These warnings can be safely ignored. They do not affect the verification process since they are related to a third-party library.
 
