@@ -55,14 +55,8 @@ The `Info.plist` file requires these values:
 <string>YOUR-API-KEY</string>
 <key>API_SECRET</key>
 <string>YOUR-SECRET-KEY</string>
-<key>REDIRECT_URL</key>
-<string>YOUR-REDIRECT-URL</string>
 <key>METHOD</key>
-<string></string>
-<key>BUSINESS_SETTINGS_ID</key>
-<string></string>
-<key>EXTERNAL_USER_ID</key>
-<string></string>
+<string>IDScan</string>
 <key>NSCameraUsageDescription</key>
 <string>Camera access is required for ID verification</string>
 <key>NSMicrophoneUsageDescription</key>
