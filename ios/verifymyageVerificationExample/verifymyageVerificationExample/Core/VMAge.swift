@@ -19,7 +19,7 @@ class VMAge {
     // MARK: - Configuration
     
     /// API base URL
-    private static let baseURL = "https://oauth.verifymyage.com"
+    private static let baseURL = "https://sandbox.verifymyage.com"
     
     /// API key for authentication
     static var apiKey: String {
@@ -32,23 +32,11 @@ class VMAge {
     }
     
     /// Redirect URL for verification completion
-    static var redirectURL: String {
-        return Bundle.main.infoDictionary?["REDIRECT_URL"] as? String ?? ""
-    }
+    private static var redirectURL = "https://demo-sdx.verifymyage.com/callback"
     
     /// Verification method (e.g., AgeEstimation, Email, IDScan, IDScanFaceMatch, Mobile, CreditCard)
     static var method: String? {
         return Bundle.main.infoDictionary?["METHOD"] as? String
-    }
-    
-    /// Id of bussiness configuration.
-    static var business_settings_id: String? {
-        return Bundle.main.infoDictionary?["BUSINESS_SETTINGS_ID"] as? String
-    }
-    
-    /// UUID to identify an user.
-    static var external_user_id: String? {
-        return Bundle.main.infoDictionary?["EXTERNAL_USER_ID"] as? String
     }
     
     /// Auth start endpoint
@@ -115,6 +103,25 @@ class VMAge {
         }
     }
     
+    // MARK: - Start Verification Model
+    
+    /// start verification params
+    struct VerificationRequest {
+        
+        ///ISO country code (e.g., "gb", "de", "fr", "us")
+        let countryCode: String
+        
+        /// UUID to identify an user.
+        let externalUserID: String?
+        
+        /// Id of business configuration.
+        let businessSettingsID: String?
+        
+        /// Redirect URL for verification completion
+        let redirectURL: String
+    }
+    
+    
     // MARK: - Response Model
     
     /// Response from verification start
@@ -135,10 +142,10 @@ class VMAge {
      Start a verification process with the specified country
      
      - Parameters:
-       - countryCode: ISO country code (e.g., "gb", "de", "fr", "us")
+       - request: VerificationRequest to start verification
        - completion: Callback with verification URL or error
      */
-    static func startVerification(countryCode: String, completion: @escaping (Result<Response, Error>) -> Void) {
+    static func startVerification(request: VerificationRequest, completion: @escaping (Result<Response, Error>) -> Void) {
         // Validate credentials
         guard !apiKey.isEmpty, !apiSecret.isEmpty else {
             completion(.failure(.invalidCredentials))
@@ -146,23 +153,25 @@ class VMAge {
         }
         
         // Validate required parameters
-        if countryCode.isEmpty{
+        if request.countryCode.isEmpty{
             completion(.failure(.missingRequiredFields("country")))
             return
         }
         
-        if redirectURL.isEmpty{
+        if request.redirectURL.isEmpty{
             completion(.failure(.missingRequiredFields("redirect_url")))
             return
         }
         
+        redirectURL = request.redirectURL
+        
         // Create parameters
         let params: [String: String?] = [
-            "country": countryCode,
-            "redirect_url": redirectURL,
+            "country": request.countryCode,
+            "redirect_url": request.redirectURL,
             "method": method,
-            "business_settings_id": business_settings_id,
-            "external_user_id": external_user_id,
+            "business_settings_id": request.businessSettingsID,
+            "external_user_id": request.externalUserID,
         ]
         
         // Start verification

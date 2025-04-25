@@ -60,6 +60,15 @@ struct VerificationFormView: View {
             // Country selection
             countrySelectionView()
             
+            // New fields: Redirect URL
+            textFieldView(title: "Redirect URL", text: $viewModel.redirectURL)
+            
+            // New fields: Business Settings ID
+            textFieldView(title: "Business Settings ID", text: $viewModel.businessSettingsID)
+            
+            // New fields: External User ID
+            textFieldView(title: "External User ID", text: $viewModel.externalUserID)
+            
             // Start button
             startButton()
         }
@@ -107,9 +116,26 @@ struct VerificationFormView: View {
         }
     }
     
+    private func textFieldView(title: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .foregroundColor(.black)
+                .font(.system(size: 16, weight: .medium))
+            
+            TextField(title, text: text)
+                .padding()
+                .background(Color.white)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+        }
+    }
+    
     private func startButton() -> some View {
         Button(action: viewModel.startVerification) {
-            Text("START")
+            Text("Start Verification")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -259,6 +285,11 @@ class VerificationViewModel: ObservableObject {
     @Published var selectedCountry: Country = Country.defaultCountries[0]
     @Published var showCountryPicker = false
     
+    // New fields
+    @Published var redirectURL: String = "https://demo-sdx.verifymyage.com/callback"
+    @Published var businessSettingsID: String = ""
+    @Published var externalUserID: String = ""
+    
     // Verification state
     @Published var showVerification = false
     @Published var verificationURL: URL?
@@ -268,8 +299,10 @@ class VerificationViewModel: ObservableObject {
     
     /// Start the verification process
     func startVerification() {
-        // Call VerifyMyAge API with country code
-        VMAge.startVerification(countryCode: selectedCountry.code) { [weak self] result in
+        // Call VerifyMyAge API with country code and additional parameters
+        VMAge.startVerification(request: VMAge.VerificationRequest(
+            countryCode: selectedCountry.code, externalUserID: externalUserID, businessSettingsID: businessSettingsID, redirectURL: redirectURL
+        )) { [weak self] result in
             guard let self = self else { return }
             
             switch result {
