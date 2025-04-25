@@ -456,6 +456,7 @@ struct VMWebView: UIViewRepresentable {
         
         let webview = WKWebView(frame: .zero, configuration: configuration)
         webview.navigationDelegate = context.coordinator
+        webview.uiDelegate = context.coordinator
         
         return webview
     }
@@ -472,7 +473,7 @@ struct VMWebView: UIViewRepresentable {
     }
     
     /// WebView coordinator
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         var parent: VMWebView
         
         init(_ parent: VMWebView) {
@@ -481,7 +482,17 @@ struct VMWebView: UIViewRepresentable {
         
         /// Handle navigation
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            
             if let url = navigationAction.request.url {
+                if url.scheme == "mailto" {
+                    if UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url, options: [:]) { success in
+                            print("Email app open result: \(success)")
+                        }
+                        decisionHandler(.cancel)
+                        return
+                    }
+                }
                 // Check for redirect URL
                 let shouldContinue = VMAge.isRedirectURL(url) { isRedirect in
                     if isRedirect, let onComplete = self.parent.onComplete {
@@ -496,6 +507,17 @@ struct VMWebView: UIViewRepresentable {
             }
             
             decisionHandler(.allow)
+        }
+        
+        // The UI delegate method for handling target="_blank" links
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+           // Handle new window requests
+           if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
+               DispatchQueue.main.async {
+                   webView.load(URLRequest(url: url))
+               }
+           }
+           return nil
         }
         
         /// Handle load start
