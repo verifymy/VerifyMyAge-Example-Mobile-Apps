@@ -2,6 +2,26 @@
 
 This guide explains how to integrate the VerifyMyAge verification flow within a WebView for both iOS and Android applications.
 
+## Preview
+iOS
+
+https://github.com/user-attachments/assets/35d38cc6-407b-46b7-a988-ac0a490dec71
+
+
+https://github.com/user-attachments/assets/fe685118-e93f-4cfe-b07d-3666e22870f0
+
+
+
+Android
+
+
+https://github.com/user-attachments/assets/7993d988-cd53-46de-b9d1-29148cbdd697
+
+
+
+
+
+
 ## Prerequisites
 
 - VerifyMyAge API credentials:
