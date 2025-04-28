@@ -502,6 +502,18 @@ struct VMWebView: UIViewRepresentable {
                         return
                     }
                 }
+                
+                if navigationAction.navigationType == .linkActivated {
+                    // Force open in external browser
+                    DispatchQueue.main.async {
+                        UIApplication.shared.open(url)
+                    }
+                    
+                    // Cancel the WebView navigation
+                    decisionHandler(.cancel)
+                    return
+                }
+                
                 // Check for redirect URL
                 let shouldContinue = VMAge.isRedirectURL(url) { isRedirect in
                     if isRedirect, let onComplete = self.parent.onComplete {
@@ -516,17 +528,6 @@ struct VMWebView: UIViewRepresentable {
             }
             
             decisionHandler(.allow)
-        }
-        
-        // The UI delegate method for handling target="_blank" links
-        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-           // Handle new window requests
-           if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
-               DispatchQueue.main.async {
-                   webView.load(URLRequest(url: url))
-               }
-           }
-           return nil
         }
         
         /// Handle load start
