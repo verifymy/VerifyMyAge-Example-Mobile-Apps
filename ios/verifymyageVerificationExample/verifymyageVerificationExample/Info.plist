@@ -2,13 +2,21 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key></key>
+	<string></string>
 	<key>API_KEY</key>
 	<string>your_api_key</string>
 	<key>API_SECRET</key>
 	<string>your_api_key</string>
 	<key>DEFAULT_CALLBACK_URL</key>
-	<string>https://your-app-callback-url.com</string>
+	<string>https://demo-sdx.verifymyage.com/callback</string>
 	<key>METHOD</key>
 	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is required for ID verification</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access may be required for video verification</string>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 </dict>
 </plist>

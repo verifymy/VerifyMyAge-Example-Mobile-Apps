@@ -467,6 +467,10 @@ struct VMWebView: UIViewRepresentable {
         webview.navigationDelegate = context.coordinator
         webview.uiDelegate = context.coordinator
         
+        // Set scrollView properties to handle keyboard better
+        webview.scrollView.keyboardDismissMode = .interactive
+        webview.scrollView.contentInsetAdjustmentBehavior = .automatic
+        
         return webview
     }
     
