@@ -218,7 +218,7 @@ When enabled, stealth mode provides a streamlined verification process:
 
 ### Setup
 
-1. Add your API credentials, redirect URL and optional method in `Info.plist`:
+Add your API credentials, redirect URL and optional method in `Info.plist`:
 ```xml
 <key>API_KEY</key>
 <string>your_api_key</string>
