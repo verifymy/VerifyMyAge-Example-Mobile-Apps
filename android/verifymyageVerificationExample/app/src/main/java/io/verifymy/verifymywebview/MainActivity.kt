@@ -1,12 +1,16 @@
 package io.verifymy.verifymywebview
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -40,6 +44,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import io.verifymy.verifymywebview.ui.theme.VerifymywebviewTheme
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -95,6 +100,7 @@ fun MainScreen(
                 }
             )
         }
+
         SCREEN_VERIFICATION -> {
             basicVerification?.let { url ->
                 BrowserScreen(
@@ -107,6 +113,7 @@ fun MainScreen(
                 )
             }
         }
+
         SCREEN_RESULT -> {
             ThankYouScreen(
                 verificationId = basicVerification?.id,
@@ -259,7 +266,8 @@ fun CountrySelectionScreen(
                             onVerificationParamsSet(
                                 VerificationParams(
                                     country = selectedCode,
-                                    redirectUrl = redirectUrl.takeIf { it != DEFAULT_CALLBACK_URL } ?: DEFAULT_CALLBACK_URL,
+                                    redirectUrl = redirectUrl.takeIf { it != DEFAULT_CALLBACK_URL }
+                                        ?: DEFAULT_CALLBACK_URL,
                                     businessSettingsId = businessSettingsId,
                                     externalUserId = externalUserId
                                 )
@@ -310,12 +318,12 @@ fun BrowserScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding() // Add padding for system bars
+            .systemBarsPadding()
     ) {
         AndroidView(
             modifier = Modifier
                 .fillMaxSize()
-                .navigationBarsPadding(), // Add padding for navigation bar
+                .navigationBarsPadding(),
             factory = { context ->
                 WebView(context).apply {
                     webView = this
@@ -324,8 +332,7 @@ fun BrowserScreen(
                         domStorageEnabled = true
                         mediaPlaybackRequiresUserGesture = false
                         setSupportMultipleWindows(true)
-                        builtInZoomControls = true
-                        displayZoomControls = false
+                        javaScriptCanOpenWindowsAutomatically = true
                     }
 
                     webViewClient = object : WebViewClient() {
@@ -333,22 +340,55 @@ fun BrowserScreen(
                             view: WebView?,
                             url: String?
                         ): Boolean {
-                            return handleCustomURLScheme(url, redirectUrl, onNavigateToThankYou)
+                           return handleCustomURLScheme(url, redirectUrl, context, onNavigateToThankYou)
                         }
 
                         override fun onPageFinished(view: WebView?, url: String?) {
                             super.onPageFinished(view, url)
                             CookieManager.getInstance().removeAllCookies {
-                                Log.d("OnPageFinished", "Cookies removed") // to prevent reusing cookies to automatically approve the verification based on the previous verification
+                                Log.d("OnPageFinished", "Cookies removed")
                             }
-                            // Reset zoom to prevent UI overlapping
                             view?.setInitialScale(0)
                         }
                     }
 
                     webChromeClient = object : WebChromeClient() {
                         override fun onPermissionRequest(request: PermissionRequest?) {
-                            request?.let { handlePermissionRequest(it) }
+                            handlePermissionRequest(request)
+                        }
+
+                        override fun onCreateWindow(
+                            view: WebView,
+                            isDialog: Boolean,
+                            isUserGesture: Boolean,
+                            resultMsg: android.os.Message
+                        ): Boolean {
+                            val newWebView = WebView(context)
+                            newWebView.webViewClient = object : WebViewClient() {
+                                override fun shouldOverrideUrlLoading(
+                                    view: WebView?,
+                                    url: String?
+                                ): Boolean {
+                                    // Open URL in external browser
+                                    url?.let {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, it.toUri())
+                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            Log.e("WebView", "Error opening URL in external browser", e)
+                                        }
+                                    }
+                                    return true
+                                }
+                            }
+
+                            // Add WebView to message
+                            val transport = resultMsg.obj as WebView.WebViewTransport
+                            transport.webView = newWebView
+                            resultMsg.sendToTarget()
+
+                            return true
                         }
                     }
 
@@ -368,7 +408,6 @@ fun BrowserScreen(
                     clearCache(true)
                     clearFormData()
                     clearHistory()
-                    evaluateJavascript("localStorage.clear();", null)
                     destroy()
                 }
             }
@@ -379,23 +418,53 @@ fun BrowserScreen(
 fun handleCustomURLScheme(
     url: String?,
     redirectUrl: String,
+    context: Context,
     onNavigateToThankYou: (String?) -> Unit
 ): Boolean {
     url?.let {
-        if (it.length > redirectUrl.length && it.substring(0, redirectUrl.length).contains(redirectUrl, ignoreCase = true)) {
-            onNavigateToThankYou(null)
-            return true
+        when {
+            url.startsWith("mailto:") -> {
+                try {
+                    val intent = Intent(Intent.ACTION_SENDTO, it.toUri())
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                    return true
+                } catch (e: Exception) {
+                    Log.e("WebView", "Error handling mailto: link", e)
+                }
+            }
+
+            it.length > redirectUrl.length && it.substring(0, redirectUrl.length)
+                .contains(redirectUrl, ignoreCase = true) -> {
+                onNavigateToThankYou(null)
+                return true
+            }
+
+            url.contains("https://verifymy.io") -> {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                    return true
+                } catch (e: Exception) {
+                    Log.e("WebView", "Error opening external link", e)
+                }
+            }
+
+            else -> false
         }
     }
     return false
 }
 
-fun handlePermissionRequest(request: PermissionRequest) {
-    val resources = request.resources
-    if (resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
-        request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
-    } else {
-        request.deny()
+fun handlePermissionRequest(request: PermissionRequest?) {
+    request?.let {
+        val resources = request.resources
+        if (resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
+            request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+        } else {
+            request.deny()
+        }
     }
 }
 
