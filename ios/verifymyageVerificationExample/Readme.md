@@ -87,7 +87,7 @@ Contains all the code needed for API communication, including:
 - WebView for verification UI
 - Status check functionality
 
-### ContentView.swift
+### DemoView.swift
 Demonstrates a complete implementation of:
 - Verification button UI
 - Status indicators for each verification state
