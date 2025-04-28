@@ -365,7 +365,6 @@ fun BrowserScreen(
                         ): Boolean {
                             val newWebView = WebView(context)
                             newWebView.webViewClient = object : WebViewClient() {
-                                @Suppress("DEPRECATION")
                                 override fun shouldOverrideUrlLoading(
                                     view: WebView?,
                                     url: String?
