@@ -3,9 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>YOUR-KEY</string>
+	<string>your_api_key</string>
 	<key>API_SECRET</key>
-	<string>YOUR-SECRET</string>
+	<string>your_api_key</string>
+	<key>DEFAULT_CALLBACK_URL</key>
+	<string>https://your-app-callback-url.com</string>
 	<key>METHOD</key>
 	<string></string>
 </dict>

@@ -32,7 +32,7 @@ class VMAge {
     }
     
     /// Redirect URL for verification completion
-    private static var redirectURL = "https://demo-sdx.verifymyage.com/callback"
+    static var redirectURL = Bundle.main.infoDictionary?["DEFAULT_CALLBACK_URL"] as? String ?? ""
     
     /// Verification method (e.g., AgeEstimation, Email, IDScan, IDScanFaceMatch, Mobile, CreditCard)
     static var method: String? {
@@ -147,7 +147,7 @@ class VMAge {
      */
     static func startVerification(request: VerificationRequest, completion: @escaping (Result<Response, Error>) -> Void) {
         // Validate credentials
-        guard !apiKey.isEmpty, !apiSecret.isEmpty else {
+        guard !apiKey.isEmpty, !apiSecret.isEmpty, !redirectURL.isEmpty else {
             completion(.failure(.invalidCredentials))
             return
         }

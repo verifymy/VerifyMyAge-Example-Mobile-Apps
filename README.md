@@ -216,6 +216,31 @@ When enabled, stealth mode provides a streamlined verification process:
 
 ## iOS Implementation
 
+### Setup
+
+1. Add your API credentials, redirect URL and optional method in `Info.plist`:
+```xml
+<key>API_KEY</key>
+<string>your_api_key</string>
+<key>API_SECRET</key>
+<string>your_api_secret</string>
+<key>REDIRECT_URL</key>
+<string>your_callback_url</string>
+<key>METHOD</key> #optional
+<string>your_method</string>
+```
+
+### Required Permissions
+
+Add to `Info.plist`:
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Camera access is required for ID verification</string>
+
+<key>NSMicrophoneUsageDescription</key>
+<string>Microphone access may be required for video verification</string>
+```
+
 ### WebView Configuration
 
 ```swift

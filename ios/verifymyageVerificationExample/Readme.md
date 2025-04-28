@@ -55,6 +55,8 @@ The `Info.plist` file requires these values:
 <string>YOUR-API-KEY</string>
 <key>API_SECRET</key>
 <string>YOUR-SECRET-KEY</string>
+<key>DEFAULT_CALLBACK_URL</key>
+<string>https://your-app-callback-url.com</string>
 <key>METHOD</key>
 <string>IDScan</string>
 <key>NSCameraUsageDescription</key>

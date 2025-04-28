@@ -286,7 +286,7 @@ class VerificationViewModel: ObservableObject {
     @Published var showCountryPicker = false
     
     // New fields
-    @Published var redirectURL: String = "https://demo-sdx.verifymyage.com/callback"
+    @Published var redirectURL: String = VMAge.redirectURL
     @Published var businessSettingsID: String = ""
     @Published var externalUserID: String = ""
     
